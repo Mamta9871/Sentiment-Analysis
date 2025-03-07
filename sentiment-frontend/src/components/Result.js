@@ -2,6 +2,8 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from '../axios';
 import { AuthContext } from './AuthProvider';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable'; // Import autoTable explicitly
 
 const Result = () => {
   const { state } = useLocation();
@@ -10,9 +12,9 @@ const Result = () => {
   const tweets = state?.tweets || null;
   const [analysisResults, setAnalysisResults] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false); // Track saving state
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const [saveSuccess, setSaveSuccess] = useState(false); // Track save success
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     if (!loading && (!user || !user.token)) {
@@ -22,10 +24,8 @@ const Result = () => {
 
   const handleAnalysis = async () => {
     if (!tweets || analysisResults.length > 0) return;
-
     setIsAnalyzing(true);
     setError('');
-
     try {
       const results = await Promise.all(
         tweets.tweets.map(async (tweet) => {
@@ -49,11 +49,9 @@ const Result = () => {
 
   const handleSaveToDatabase = async () => {
     if (!analysisResults.length) return;
-
     setIsSaving(true);
     setError('');
     setSaveSuccess(false);
-
     try {
       const res = await axios.post('/sentiment/save-analyzed-tweets', {
         username: tweets.username,
@@ -69,6 +67,48 @@ const Result = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.text(`Analyzed Tweets for @${tweets.username} (${tweets.name})`, 14, 10);
+
+    // Prepare table data
+    const tableData = analysisResults.map((item) => [
+      tweets.username,
+      item.text,
+      item.sentiment
+    ]);
+
+    // Add table using autoTable
+    autoTable(doc, { // Use autoTable directly
+      startY: 20,
+      head: [['Username', 'Text', 'Sentiment']],
+      body: tableData,
+      styles: { fontSize: 10, cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 100 },
+        2: { cellWidth: 30 }
+      },
+      theme: 'striped'
+    });
+
+    doc.save(`${tweets.username}_analyzed_tweets.pdf`);
+  };
+
+  const exportToCSV = () => {
+    const csvContent = [
+      "Username,Tweet,Sentiment,Posted",
+      ...analysisResults.map(item =>
+        `"${tweets.username}","${item.text.replace(/"/g, '""')}","${item.sentiment}","${item.created_at === "Unknown" ? "Unknown" : new Date(item.created_at).toLocaleString()}"`
+      )
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${tweets.username}_analyzed_tweets.csv`;
+    link.click();
   };
 
   if (loading) return <div>Loading...</div>;
@@ -100,13 +140,27 @@ const Result = () => {
             {isAnalyzing ? 'Analyzing...' : 'Analyze Tweets'}
           </button>
           {analysisResults.length > 0 && (
-            <button
-              onClick={handleSaveToDatabase}
-              className="mt-4 ml-4 bg-green-600 text-white p-2 rounded hover:bg-green-700 transition disabled:bg-gray-400"
-              disabled={isSaving || saveSuccess}
-            >
-              {isSaving ? 'Saving...' : saveSuccess ? 'Saved' : 'Save to Database'}
-            </button>
+            <>
+              <button
+                onClick={handleSaveToDatabase}
+                className="mt-4 ml-4 bg-green-600 text-white p-2 rounded hover:bg-green-700 transition disabled:bg-gray-400"
+                disabled={isSaving || saveSuccess}
+              >
+                {isSaving ? 'Saving...' : saveSuccess ? 'Saved' : 'Save to Database'}
+              </button>
+              <button
+                onClick={exportToPDF}
+                className="mt-4 ml-4 bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+              >
+                Export to PDF
+              </button>
+              <button
+                onClick={exportToCSV}
+                className="mt-4 ml-4 bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+              >
+                Export to CSV
+              </button>
+            </>
           )}
           {error && <p className="text-red-500 mt-4">{error}</p>}
           {saveSuccess && <p className="text-green-500 mt-4">Tweets saved to database successfully!</p>}
