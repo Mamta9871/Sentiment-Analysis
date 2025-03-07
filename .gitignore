@@ -1,0 +1,12 @@
+# Ignore Python virtual environment
+sentiment-analysis/venv/
+
+# Ignore Node.js modules
+sentiment-backend/node_modules/
+sentiment-frontend/node_modules/
+
+# Ignore environment variables
+sentiment-backend/.env
+
+# Ignore build artifacts
+sentiment-frontend/build/
