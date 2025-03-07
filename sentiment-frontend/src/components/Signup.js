@@ -14,7 +14,7 @@ const Signup = () => {
     setError('');
     const result = await signup(username, password); // Call signup
     if (result.success) {
-      navigate('/dashboard'); // Redirect on success
+      navigate('/'); // Redirect on success
     } else {
       setError(result.message || 'Signup failed. Username may already exist.'); // Show error
     }

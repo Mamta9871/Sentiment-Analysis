@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Added Link for navigation
 import { AuthContext } from './AuthProvider';
 
 const Login = () => {
@@ -55,6 +55,12 @@ const Login = () => {
           </button>
           {error && <p className="text-red-500">{error}</p>}
         </form>
+        <p className="mt-4 text-center text-gray-600">
+          Don’t have an account?{' '}
+          <Link to="/signup" className="text-indigo-600 hover:underline">
+            Sign Up
+          </Link>
+        </p>
       </div>
     </div>
   );
