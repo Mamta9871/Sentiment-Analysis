@@ -78,6 +78,10 @@ cd sentiment-ai
 2. Make a virtual environment:
    # Windows:
    python -m venv venv
+
+# To activate venv we need to give permission to terminall to run system program
+   set-executionpolicy unresticted -scope process
+# now activate virtual environment
    .\venv\Scripts\activate
 
    # Linux/Mac:
@@ -87,6 +91,9 @@ cd sentiment-ai
 
 3. Install Python packages:
    pip install -r requirements.txt
+
+# now we need to install tweepy all pre versions to project smoothly if you intract with any kind of error
+   pip install --pre tweepy
 
    # Needs flask, tweepy, textblob, requests.
 
