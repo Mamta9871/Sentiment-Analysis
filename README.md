@@ -95,7 +95,7 @@ cd sentiment-ai
 # now we need to install tweepy all pre versions to project smoothly if you intract with any kind of error
    pip install --pre tweepy
 
-   # Needs flask, tweepy, textblob, requests.
+   # Needs flask, flask-cors, torch, transformers, pandas, scikit-learn, --pre tweepy, nltk
 
 
 4. Add Twitter API key:
