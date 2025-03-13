@@ -1,79 +1,140 @@
-import React, { useState, useContext } from 'react';
-import Sidebar from './Sidebar';
-import axios from '../axios';
-import { AuthContext } from './AuthProvider';
+import React, { useState } from 'react';
+import Layout from '../components/Layout';
+import { FaTwitter } from 'react-icons/fa';
 
 const Dashboard = () => {
-  const [tweet, setTweet] = useState('');       // Tweet input state
-  const [result, setResult] = useState(null);   // Sentiment result state
-  const [error, setError] = useState('');       // Error state
-  const { user } = useContext(AuthContext);     // User from context
+  const [tweet, setTweet] = useState('');
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [savedEntities, setSavedEntities] = useState([]);
 
-  const handleAnalyze = async (e) => {
-    e.preventDefault();
-    setError('');
-    setResult(null);
-    try {
-      const res = await axios.post('/sentiment/analyze', { tweet }, {
-        headers: { Authorization: `Bearer ${user?.token}` }, // Send token
-      });
-      setResult(res.data); // Set result
-    } catch (err) {
-      setError(err.response?.data?.error || 'Analysis failed. Ensure Flask API is running.'); // Show error
+  const handleAnalyze = () => {
+    if (!tweet.trim()) return;
+    
+    // Simulated sentiment analysis logic with emoji support
+    const getSentiment = (text) => {
+      const lowerText = text.toLowerCase();
+      if (
+        lowerText.includes('good') ||
+        lowerText.includes('great') ||
+        lowerText.includes('happy') ||
+        lowerText.includes('😊') ||
+        lowerText.includes('👍')
+      ) {
+        return { type: 'positive', emoji: '😊👍' };
+      } else if (
+        lowerText.includes('bad') ||
+        lowerText.includes('terrible') ||
+        lowerText.includes('sad') ||
+        lowerText.includes('😢') ||
+        lowerText.includes('👎')
+      ) {
+        return { type: 'negative', emoji: '😢👎' };
+      } else {
+        return { type: 'neutral', emoji: '😐' };
+      }
+    };
+
+    const sentiment = getSentiment(tweet);
+    setAnalysisResult({
+      text: tweet,
+      sentiment: sentiment.type,
+      emoji: sentiment.emoji
+    });
+    setRecentSearches((prev) => [...prev, tweet]);
+    setTweet('');
+  };
+
+  const handleSaveEntity = () => {
+    if (analysisResult) {
+      setSavedEntities((prev) => [
+        ...prev,
+        `${analysisResult.text} (${analysisResult.sentiment} ${analysisResult.emoji})`
+      ]);
+      setAnalysisResult(null);
     }
   };
 
+  // Sentiment color mapping
+  const sentimentColors = {
+    positive: 'bg-green-50 border-green-200 text-green-800',
+    negative: 'bg-red-50 border-red-200 text-red-800',
+    neutral: 'bg-gray-50 border-gray-200 text-gray-800'
+  };
+
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 ml-64 p-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Sentiment Analysis Dashboard</h1>
-        <div className="bg-white p-6 rounded-lg shadow-lg">
-          <form onSubmit={handleAnalyze} className="space-y-4">
-            <div>
-              <label htmlFor="tweet" className="block text-gray-700">Tweet</label>
-              <textarea
-                id="tweet"
-                value={tweet}
-                onChange={(e) => setTweet(e.target.value)}
-                className="w-full mt-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                rows="4"
-                placeholder="Enter a tweet to analyze..."
-              />
-            </div>
+    <Layout>
+      <div className="flex flex-col gap-6">
+        {/* Header */}
+        <h2 className="text-3xl font-bold text-gray-800">Sentiment Analysis Dashboard</h2>
+
+        {/* Cards row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Analyze Tweet Card */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Analyze Tweet</h3>
+            <textarea
+              value={tweet}
+              onChange={(e) => setTweet(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter a tweet... (try adding 😊 or 😢)"
+              rows={3}
+            />
             <button
-              type="submit"
-              className="bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700 transition"
+              onClick={handleAnalyze}
+              className="mt-3 bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition"
             >
-              Analyze Sentiment
+              Analyze
             </button>
-          </form>
-          {error && <p className="text-red-500 mt-4">{error}</p>} 
-          {result && (
-            <div className="mt-6 bg-gray-50 p-5 rounded-lg shadow-md border border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800 mb-3">Analysis Result</h2>
-              <div className="flex items-center space-x-2 mb-4">
-                <span className="text-gray-700 font-medium">Sentiment:</span>
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    result.sentiment === 'Positive' ? 'bg-green-100 text-green-700' :
-                    result.sentiment === 'Negative' ? 'bg-red-100 text-red-700' :
-                    'bg-yellow-100 text-yellow-700'
-                  }`}
+            {analysisResult && (
+              <div className={`mt-3 p-3 border rounded ${sentimentColors[analysisResult.sentiment]}`}>
+                <p className="mb-2 font-medium">
+                  Text: "{analysisResult.text}"
+                </p>
+                <p className="mb-2 font-medium">
+                  Sentiment: <span className="capitalize">{analysisResult.sentiment}</span> {analysisResult.emoji}
+                </p>
+                <button
+                  onClick={handleSaveEntity}
+                  className="bg-green-600 text-white text-sm px-3 py-1 rounded hover:bg-green-700 transition"
                 >
-                  {result.sentiment}
-                </span>
+                  Save
+                </button>
               </div>
-              <div className="bg-white p-4 rounded-lg border border-gray-300">
-                <p className="text-gray-700"><strong>Original Tweet:</strong> {result.original_tweet}</p>
-                <p className="text-gray-700 mt-2"><strong>Cleaned Tweet:</strong> {result.cleaned_tweet}</p>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Recent Searches */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Recent Searches</h3>
+            {recentSearches.length > 0 ? (
+              <ul className="list-disc ml-5 text-sm">
+                {recentSearches.map((search, idx) => (
+                  <li key={idx}>{search}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-sm">No recent searches yet.</p>
+            )}
+          </div>
+
+          {/* Saved Entities */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Saved Entities</h3>
+            {savedEntities.length > 0 ? (
+              <ul className="list-disc ml-5 text-sm">
+                {savedEntities.map((entity, idx) => (
+                  <li key={idx}>{entity}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-sm">No saved entities yet.</p>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 
-export default Dashboard; // Export Dashboard component
+export default Dashboard;

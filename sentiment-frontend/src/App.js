@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import Twitter from './components/Twitter';
 import Result from './components/Result';
 import AuthProvider from './components/AuthProvider';
+import TrendingHashtags from './components/TrendingHashtags';
 
 const App = () => {
   return (
@@ -17,6 +18,8 @@ const App = () => {
           <Route path="/" element={<Dashboard />} />
           <Route path="/twitter" element={<Twitter />} />
           <Route path="/result" element={<Result />} />
+          <Route path="/hashtags" element={<TrendingHashtags />} />
+
         </Routes>
       </Router>
     </AuthProvider>

@@ -24,7 +24,7 @@ const Signup = () => {
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full space-y-6">
         <h2 className="text-2xl font-bold text-gray-800 text-center">Sign Up</h2>
-        {error && <p className="text-red-500 text-center">{error}</p>} // Error message
+        {error && <p className="text-red-500 text-center">{error}</p>} 
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
             <label htmlFor="username" className="block text-gray-700">Username</label>
