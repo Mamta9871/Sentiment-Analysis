@@ -4,7 +4,7 @@ from twitter import twitter_bp
 from tweetanalysis import tweetanalysis_bp
 
 app = Flask(__name__)
-
+#amit
 # Register blueprints
 app.register_blueprint(sentiment_bp, url_prefix='/sentiment')
 app.register_blueprint(twitter_bp, url_prefix='/twitter')
