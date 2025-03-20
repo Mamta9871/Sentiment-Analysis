@@ -45,6 +45,8 @@ const Layout = ({ children }) => {
     { label: 'Trending Categories', icon: FaTag, to: '/categories' },
     { label: 'Trending Hashtags', icon: FaHashtag, to: '/hashtags' },
     { label: 'Twitter', icon: FaTwitter, to: '/twitter' },
+    { label: 'Hashtag Search', icon: FaHashtag, to: '/hashtag' }
+    
   ];
 
   return (

@@ -1,90 +1,112 @@
-const express = require("express");
-const jwt = require("jsonwebtoken");
-const axios = require("axios");
-const AnalyzedTweet = require("../models/AnalyzedTweet"); 
-
+const express = require('express');
+const axios = require('axios');
 const router = express.Router();
+const AnalyzedTweet = require('../models/AnalyzedTweet');
+const HashtagTweet = require('../models/HashtagTweet');
 
-const auth = (req, res, next) => {
-  const token = req.header("Authorization")?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "No token provided" });
+const FLASK_API_URL = 'http://localhost:5001/twitter';
 
+router.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - SENTIMENT.JS ACTIVE`);
+  next();
+});
+
+router.get('/tweets/:username', async (req, res) => {
+  const { username } = req.params;
+  const { count } = req.query;
+  console.log(`Received username request: ${username}, count: ${count}`);
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ error: "Invalid Token" });
+    const response = await axios.get(`${FLASK_API_URL}/tweets/${username}`, {
+      params: { count },
+      headers: { Authorization: `Bearer ${req.user?.token || ''}` }
+    });
+    console.log('Flask response for username:', response.data);
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error fetching username tweets:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+    res.status(error.response?.status || 500).json({
+      error: error.response?.data?.error || 'Server error fetching username tweets'
+    });
   }
-};
+});
 
-// Proxy for sentiment analysis
-router.post("/analyze", auth, async (req, res) => {
+router.get('/hashtag/:hashtag', async (req, res) => {
+  const { hashtag } = req.params;
+  const { count } = req.query;
+  console.log(`Received hashtag request: ${hashtag}, count: ${count}`);
+  try {
+    const response = await axios.get(`${FLASK_API_URL}/hashtag/${hashtag}`, {
+      params: { count }
+    });
+    console.log('Flask response for hashtag:', response.data);
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error fetching hashtag tweets:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+    res.status(error.response?.status || 500).json({
+      error: error.response?.data?.error || 'Server error fetching hashtag tweets'
+    });
+  }
+});
+
+router.post('/analyze', async (req, res) => {
   const { tweet } = req.body;
-  if (!tweet) return res.status(400).json({ error: "No tweet provided" });
-
+  console.log(`Received analysis request for tweet: ${tweet}`);
   try {
-    const response = await axios.post("http://localhost:5001/sentiment/analyze", { tweet });
+    const response = await axios.post(`${FLASK_API_URL}/analyze`, { tweet });
+    console.log('Flask analysis response:', response.data);
     res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ error: "Sentiment Analysis Failed. Ensure Flask API is running." });
-  }
-});
-
-// Proxy for fetching tweets
-router.get("/tweets/:username", auth, async (req, res) => {
-  const { username } = req.params;
-  const { count } = req.query;
-  try {
-    const response = await axios.get(`http://localhost:5001/twitter/tweets/${username}`, {
-      params: { count }
+  } catch (error) {
+    console.error('Error analyzing tweet:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
     });
-    res.json(response.data);
-  } catch (err) {
-    res.status(err.response?.status || 500).json({
-      error: err.response?.data?.error || "Failed to fetch tweets. Ensure Flask API is running."
+    res.status(error.response?.status || 500).json({
+      error: error.response?.data?.error || 'Server error analyzing tweet'
     });
   }
 });
 
-// Proxy for tweet analysis (tweets + sentiment)
-router.get("/tweetanalysis/:username", auth, async (req, res) => {
-  const { username } = req.params;
-  const { count } = req.query;
-  try {
-    const response = await axios.get(`http://localhost:5001/tweetanalysis/${username}`, {
-      params: { count }
-    });
-    res.json(response.data);
-  } catch (err) {
-    res.status(err.response?.status || 500).json({
-      error: err.response?.data?.error || "Failed to analyze tweets. Ensure Flask API is running."
-    });
-  }
-});
-// for saving analyzed data into database
-router.post("/save-analyzed-tweets", auth, async (req, res) => {
+router.post('/save-analyzed-tweets', async (req, res) => {
   const { username, name, tweets } = req.body;
-  console.log('Request Body:', req.body); // Debug incoming data
-
-  if (!username || !name || !tweets || !Array.isArray(tweets)) {
-    console.log('Validation Failed:', { username, name, tweets });
-    return res.status(400).json({ error: "Invalid data provided" });
-  }
-
+  console.log(`Saving tweets for username: ${username}`);
   try {
-    const analyzedTweet = new AnalyzedTweet({
+    const tweetDoc = new AnalyzedTweet({
       username,
       name,
-      tweets
+      tweets,
+      user: req.user?.id || 'unknown'
     });
-    console.log('Saving Document:', analyzedTweet); // Debug before save
-    await analyzedTweet.save();
-    console.log('Save Successful');
-    res.status(201).json({ message: "Analyzed tweets saved successfully" });
-  } catch (err) {
-    console.error('Save Error:', err.message); // Detailed error log
-    res.status(500).json({ error: "Failed to save analyzed tweets: " + err.message });
+    await tweetDoc.save();
+    res.status(201).json({ message: 'Tweets saved successfully' });
+  } catch (error) {
+    console.error('Error saving username tweets:', error.message);
+    res.status(500).json({ error: 'Failed to save tweets' });
+  }
+});
+
+router.post('/save-analyzed-hashtag-tweets', async (req, res) => {
+  const { hashtag, tweets } = req.body;
+  console.log(`Saving tweets for hashtag: ${hashtag}`);
+  try {
+    const hashtagTweetDoc = new HashtagTweet({
+      hashtag,
+      tweets,
+      user: req.user?.id || 'unknown'
+    });
+    await hashtagTweetDoc.save();
+    res.status(201).json({ message: 'Hashtag tweets saved successfully' });
+  } catch (error) {
+    console.error('Error saving hashtag tweets:', error.message);
+    res.status(500).json({ error: 'Failed to save hashtag tweets' });
   }
 });
 
