@@ -1,30 +1,25 @@
-// CircularProgress.jsx (or place this in the same file under Dashboard)
-
 import React from 'react';
 
 /**
  * A simple circular progress bar.
  *
- * @param {number} percentage - The percentage value to fill (0 to 100).
+ * @param {number} percentage - The percentage value to fill (0 to 100). Defaults to 0.
  * @param {string} color      - Tailwind color classes (e.g., 'text-green-500').
  */
-const CircularProgress = ({ percentage, color }) => {
-  // The radius of the circle
+const CircularProgress = ({ percentage = 0, color }) => {
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
-  // Calculate the stroke offset based on the percentage
-  const offset = circumference - (percentage / 100) * circumference;
+  const offset = circumference - ((percentage || 0) / 100) * circumference;
 
   return (
     <div className="relative w-20 h-20 flex items-center justify-center">
-      {/* SVG is rotated so the progress starts from the top instead of the right */}
       <svg
         className="transform -rotate-90"
         width={80}
         height={80}
         viewBox="0 0 80 80"
       >
-        {/* Background circle (gray track) */}
+        {/* Background Circle */}
         <circle
           className="text-gray-300"
           strokeWidth="8"
@@ -34,7 +29,7 @@ const CircularProgress = ({ percentage, color }) => {
           cx={40}
           cy={40}
         />
-        {/* Progress circle (color fill) */}
+        {/* Progress Circle */}
         <circle
           className={color}
           strokeWidth="8"
@@ -49,9 +44,9 @@ const CircularProgress = ({ percentage, color }) => {
         />
       </svg>
 
-      {/* Centered text showing the percentage */}
-      <span className="absolute text-sm font-bold">
-        {percentage}%
+      {/* Percentage Text - Ensure Visibility */}
+      <span className="absolute text-sm font-bold text-gray-900 bg-white px-1 py-0.5 rounded">
+        {percentage ?? 0}%
       </span>
     </div>
   );

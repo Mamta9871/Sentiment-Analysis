@@ -15,7 +15,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
  
 # New Bearer Token hardcoded
-TWITTER_BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAABysyQEAAAAALMHLg%2Bq%2BphQl9ahUwa5YbynOm8Y%3DLTWi4CMOLwdRG9UVwUAwHkauszzwkQYAQnJs9ezqERqparqcKt"
+TWITTER_BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAAFbszgEAAAAAIKebsVHfr5JjOSbC1OkLVcLo%2FLY%3DA0UBvNJmXJMKTNemttmwzRKWKjbVhfmSXXjSpRBL4OkyqJeeqz"
 print(f"Loaded TWITTER_BEARER_TOKEN: {'Set' if TWITTER_BEARER_TOKEN else 'Not Set'}")
  
 class TwitterScraper:

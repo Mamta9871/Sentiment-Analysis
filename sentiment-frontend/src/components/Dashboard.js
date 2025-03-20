@@ -88,8 +88,15 @@ const Dashboard = () => {
 
   // If no tweets analyzed, default to 33/33/34 distribution
   const positivePerc = total === 0 ? 33 : Math.round((sentimentCounts.positive / total) * 100);
-  const negativePerc = total === 0 ? 33 : Math.round((sentimentCounts.negative / total) * 100);
-  const neutralPerc  = total === 0 ? 34 : Math.round((sentimentCounts.neutral / total) * 100);
+const negativePerc = total === 0 ? 33 : Math.round((sentimentCounts.negative / total) * 100);
+let neutralPerc = total === 0 ? 34 : Math.round((sentimentCounts.neutral / total) * 100);
+
+// Adjust total to ensure 100%
+const sum = positivePerc + negativePerc + neutralPerc;
+if (sum !== 100) {
+  neutralPerc += (100 - sum); // Adjust neutral to make sum exactly 100%
+}
+
 
   // Sample words array for the word cloud (replace with your dynamic data)
   const words = [
@@ -177,21 +184,21 @@ const Dashboard = () => {
             <div className="flex flex-col md:flex-row items-center justify-center gap-2">
               {/* Positive Circle */}
               <div className="flex flex-col items-center">
-                <CircularProgress percentage={positivePerc} color="stroke-green-500" />
+                <CircularProgress percentage={positivePerc ?? 0} color="stroke-green-500" />
                 <span className="mt-2 text-sm font-medium text-green-700">
                   Positive
                 </span>
               </div>
               {/* Negative Circle */}
               <div className="flex flex-col items-center">
-                <CircularProgress percentage={negativePerc} color="stroke-red-500" />
+                <CircularProgress percentage={negativePerc ?? 0} color="stroke-red-500" />
                 <span className="mt-2 text-sm font-medium text-red-700">
                   Negative
                 </span>
               </div>
               {/* Neutral Circle */}
               <div className="flex flex-col items-center">
-                <CircularProgress percentage={neutralPerc} color="stroke-orange-400" />
+                <CircularProgress percentage={neutralPerc ?? 0} color="stroke-orange-400" />
                 <span className="mt-2 text-sm font-medium text-orange-600">
                   Neutral
                 </span>
