@@ -45,7 +45,7 @@ const CircularProgress = ({ percentage = 0, color }) => {
       </svg>
 
       {/* Percentage Text - Ensure Visibility */}
-      <span className="absolute text-sm font-bold text-gray-900 bg-white px-1 py-0.5 rounded">
+      <span className="absolute text-sm font-bold text-gray-900 bg-white px-1 py-3 rounded">
         {percentage ?? 0}%
       </span>
     </div>
