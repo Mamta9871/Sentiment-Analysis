@@ -13,12 +13,12 @@ router.use((req, res, next) => {
 
 router.get('/tweets/:username', async (req, res) => {
   const { username } = req.params;
-  const { count } = req.query;
-  console.log(`Received username request: ${username}, count: ${count}`);
+  const { count, start_date, end_date } = req.query;
+  console.log(`Received username request: ${username}, count: ${count}, start_date: ${start_date}, end_date: ${end_date}`);
   try {
     const response = await axios.get(`${FLASK_API_URL}/tweets/${username}`, {
-      params: { count },
-      headers: { Authorization: `Bearer ${req.user?.token || ''}` }
+      params: { count, start_date, end_date },
+      headers: { Authorization: `Bearer ${req.user?.token || ''}` },
     });
     console.log('Flask response for username:', response.data);
     res.json(response.data);
@@ -26,21 +26,21 @@ router.get('/tweets/:username', async (req, res) => {
     console.error('Error fetching username tweets:', {
       status: error.response?.status,
       data: error.response?.data,
-      message: error.message
+      message: error.message,
     });
     res.status(error.response?.status || 500).json({
-      error: error.response?.data?.error || 'Server error fetching username tweets'
+      error: error.response?.data?.error || 'Server error fetching username tweets',
     });
   }
 });
 
 router.get('/hashtag/:hashtag', async (req, res) => {
   const { hashtag } = req.params;
-  const { count } = req.query;
-  console.log(`Received hashtag request: ${hashtag}, count: ${count}`);
+  const { count, start_date, end_date } = req.query;
+  console.log(`Received hashtag request: ${hashtag}, count: ${count}, start_date: ${start_date}, end_date: ${end_date}`);
   try {
     const response = await axios.get(`${FLASK_API_URL}/hashtag/${hashtag}`, {
-      params: { count }
+      params: { count, start_date, end_date },
     });
     console.log('Flask response for hashtag:', response.data);
     res.json(response.data);
@@ -48,10 +48,10 @@ router.get('/hashtag/:hashtag', async (req, res) => {
     console.error('Error fetching hashtag tweets:', {
       status: error.response?.status,
       data: error.response?.data,
-      message: error.message
+      message: error.message,
     });
     res.status(error.response?.status || 500).json({
-      error: error.response?.data?.error || 'Server error fetching hashtag tweets'
+      error: error.response?.data?.error || 'Server error fetching hashtag tweets',
     });
   }
 });
@@ -67,10 +67,10 @@ router.post('/analyze', async (req, res) => {
     console.error('Error analyzing tweet:', {
       status: error.response?.status,
       data: error.response?.data,
-      message: error.message
+      message: error.message,
     });
     res.status(error.response?.status || 500).json({
-      error: error.response?.data?.error || 'Server error analyzing tweet'
+      error: error.response?.data?.error || 'Server error analyzing tweet',
     });
   }
 });
@@ -83,7 +83,7 @@ router.post('/save-analyzed-tweets', async (req, res) => {
       username,
       name,
       tweets,
-      user: req.user?.id || 'unknown'
+      user: req.user?.id || 'unknown',
     });
     await tweetDoc.save();
     res.status(201).json({ message: 'Tweets saved successfully' });
@@ -100,7 +100,7 @@ router.post('/save-analyzed-hashtag-tweets', async (req, res) => {
     const hashtagTweetDoc = new HashtagTweet({
       hashtag,
       tweets,
-      user: req.user?.id || 'unknown'
+      user: req.user?.id || 'unknown',
     });
     await hashtagTweetDoc.save();
     res.status(201).json({ message: 'Hashtag tweets saved successfully' });

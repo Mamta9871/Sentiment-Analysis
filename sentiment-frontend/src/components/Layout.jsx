@@ -157,7 +157,7 @@ const Layout = ({ children }) => {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-200 hover:text-white dark:hover:bg-gray-600 transition-colors"
+                  className="w-full text-left px-4 py-2 text-sm bg-red-500 hover:text-white text-white dark:hover:bg-red-700 transition-colors"
                 >
                   Logout
                 </button>

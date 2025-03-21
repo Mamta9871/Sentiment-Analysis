@@ -9,7 +9,7 @@ import logging
 import time
 
 from textblob import TextBlob
- 
+
 twitter_bp = Blueprint('twitter', __name__)
 
 CORS(twitter_bp)
@@ -23,9 +23,8 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
- 
-TWITTER_BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAAFbszgEAAAAAx8ly%2FNwk61j5DClBDw28NyebUZQ%3DPAqj3T5lr6xMEiRqWEPhmD1Xkh0GHtAz5RSSVMkxbnEPbG0a2Q"
 
+TWITTER_BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAAFbszgEAAAAAtsvdmof7om3bEBiGUi4IrJnJ4as%3DwxYh973rXhqOcthRkIht6s9k0EIcs0nKzcZsAVFg0bXcirqDBk"
 print(f"Loaded TWITTER_BEARER_TOKEN: {'Set' if TWITTER_BEARER_TOKEN else 'Not Set'}")
  
 class TwitterScraper:
@@ -65,23 +64,16 @@ class TwitterScraper:
             self.window_start_time = current_time
 
         can_proceed = self.request_count < self.MAX_REQUESTS
-
         print(f"Checking rate limit: Requests = {self.request_count}/{self.MAX_REQUESTS}, Elapsed = {elapsed_time:.2f}s, Can proceed = {can_proceed}")
-
         return can_proceed
- 
+
     def fetch_tweets(self, username, count=5):
-
         print(f"Fetching tweets for username: {username}, count: {count}")
-
         if not self.can_make_request():
-
             wait_time = int(self.RATE_LIMIT_WINDOW - (time.time() - self.window_start_time))
+            logger.warning(f"Rate limited. Wait time: {wait_time}s")
+            return {"error": f"Rate limited. Please wait {wait_time} seconds before trying again."}, 429
 
-            logger.warning(f"Local rate limit hit. Wait time: {wait_time}s")
-
-            return {"error": f"Rate limited locally. Wait {wait_time} seconds."}, 429
- 
         try:
 
             user_response = self.client.get_user(username=username)
@@ -93,55 +85,33 @@ class TwitterScraper:
                 return {"error": f"Twitter user @{username} not found."}, 404
  
             user_id = user_response.data.id
-
             count = max(5, min(int(count), 100))
-
             tweets_response = self.client.get_users_tweets(
-
                 id=user_id,
-
                 max_results=count,
-
                 tweet_fields=["created_at"]
-
             )
-
             if not tweets_response.data:
-
                 logger.info(f"No recent tweets found for @{username}")
-
                 return {"tweets": [{"text": f"No recent tweets found for @{username}", "created_at": "N/A"}]}, 200
- 
+
             self.request_count += 1
-
             tweets = [
-
                 {"text": tweet.text, "created_at": tweet.created_at.isoformat()}
-
                 for tweet in tweets_response.data
-
             ]
-
             print(f"Fetched tweets: {tweets}")
 
             logger.info(f"Successfully fetched {len(tweets)} tweets for @{username}")
 
             return {"username": username, "name": user_response.data.name, "tweets": tweets}, 200
- 
-        except tweepy.TooManyRequests as e:
 
-            reset_time = int(e.response.headers.get('x-rate-limit-reset', time.time() + 900))
-
-            wait_time = max(0, reset_time - int(time.time()))
-
-            logger.warning(f"Twitter API 429: Too Many Requests. Reset in {wait_time}s. Headers: {e.response.headers}")
-
-            return {"error": f"Twitter API rate limit exceeded. Wait {wait_time} seconds."}, 429
-
+        except tweepy.TooManyRequests:
+            logger.warning("Too Many Requests (429). Wait 15 minutes.")
+            self.request_count = self.MAX_REQUESTS
+            return {"error": "Too Many Requests (429). Wait 15 minutes."}, 429
         except tweepy.TweepyException as e:
-
-            logger.error(f"Tweepy error fetching tweets: {str(e)}, Headers: {e.response.headers if e.response else 'N/A'}")
-
+            logger.error(f"Tweepy error fetching tweets: {str(e)}")
             return {"error": f"Tweepy error fetching tweets: {str(e)}"}, 500
 
         except Exception as e:
@@ -149,71 +119,44 @@ class TwitterScraper:
             logger.error(f"Unexpected error fetching tweets: {str(e)}")
 
             return {"error": f"Unexpected error fetching tweets: {str(e)}"}, 500
- 
+
     def fetch_hashtag_tweets(self, hashtag, count=10):
-
         print(f"Fetching tweets for hashtag: #{hashtag}, count: {count}")
-
         if not self.can_make_request():
-
             wait_time = int(self.RATE_LIMIT_WINDOW - (time.time() - self.window_start_time))
+            logger.warning(f"Rate limited. Wait time: {wait_time}s")
+            return {"error": f"Rate limited. Please wait {wait_time} seconds before trying again."}, 429
 
-            logger.warning(f"Local rate limit hit. Wait time: {wait_time}s")
-
-            return {"error": f"Rate limited locally. Wait {wait_time} seconds."}, 429
- 
         try:
 
             query = f"#{hashtag}"
-
             count = max(5, min(int(count), 100))
-
             tweets_response = self.client.search_recent_tweets(
-
                 query=query,
-
                 max_results=count,
-
                 tweet_fields=["created_at"]
-
             )
-
             if not tweets_response.data:
-
                 logger.info(f"No recent tweets found for #{hashtag}")
-
                 return {"tweets": [{"text": f"No recent tweets found for #{hashtag}", "created_at": "N/A"}]}, 200
- 
+
             self.request_count += 1
-
             tweets = [
-
                 {"text": tweet.text, "created_at": tweet.created_at.isoformat()}
-
                 for tweet in tweets_response.data
-
             ]
-
             print(f"Fetched hashtag tweets: {tweets}")
 
             logger.info(f"Successfully fetched {len(tweets)} tweets for #{hashtag}")
 
             return {"hashtag": hashtag, "tweets": tweets}, 200
- 
-        except tweepy.TooManyRequests as e:
 
-            reset_time = int(e.response.headers.get('x-rate-limit-reset', time.time() + 900))
-
-            wait_time = max(0, reset_time - int(time.time()))
-
-            logger.warning(f"Twitter API 429: Too Many Requests. Reset in {wait_time}s. Headers: {e.response.headers}")
-
-            return {"error": f"Twitter API rate limit exceeded. Wait {wait_time} seconds."}, 429
-
+        except tweepy.TooManyRequests:
+            logger.warning("Too Many Requests (429). Wait 15 minutes.")
+            self.request_count = self.MAX_REQUESTS
+            return {"error": "Too Many Requests (429). Wait 15 minutes."}, 429
         except tweepy.TweepyException as e:
-
-            logger.error(f"Tweepy error fetching hashtag tweets: {str(e)}, Headers: {e.response.headers if e.response else 'N/A'}")
-
+            logger.error(f"Tweepy error fetching hashtag tweets: {str(e)}")
             return {"error": f"Tweepy error fetching hashtag tweets: {str(e)}"}, 500
 
         except Exception as e:
@@ -237,9 +180,7 @@ except Exception as e:
 def get_tweets(username):
 
     count = request.args.get('count', default=5, type=int)
-
     result, status_code = twitter_scraper.fetch_tweets(username, count)
-
     return jsonify(result), status_code
  
 @twitter_bp.route('/hashtag/<hashtag>', methods=['GET'])
@@ -247,9 +188,7 @@ def get_tweets(username):
 def get_hashtag_tweets(hashtag):
 
     count = request.args.get('count', default=10, type=int)
-
     result, status_code = twitter_scraper.fetch_hashtag_tweets(hashtag, count)
-
     return jsonify(result), status_code
  
 @twitter_bp.route('/analyze', methods=['POST'])

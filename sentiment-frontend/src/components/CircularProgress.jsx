@@ -53,3 +53,4 @@ const CircularProgress = ({ percentage = 0, color }) => {
 };
 
 export default CircularProgress;
+

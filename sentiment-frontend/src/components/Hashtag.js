@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import axios from '../axios'; // Adjust if axios.js is elsewhere
+import axios from '../axios';
 import { useNavigate } from 'react-router-dom';
 
 const Hashtag = () => {
   const [hashtag, setHashtag] = useState('');
   const [count, setCount] = useState(10);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -13,11 +15,13 @@ const Hashtag = () => {
     setError('');
     try {
       const response = await axios.get(`/sentiment/hashtag/${hashtag}`, {
-        params: { count },
+        params: { count, start_date: startDate, end_date: endDate },
       });
       navigate('/hashtag-result', { state: { data: response.data } });
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to fetch hashtag tweets');
+      const errorMsg = err.response?.data?.error || 'Failed to fetch hashtag tweets';
+      setError(errorMsg);
+      console.error('Error details:', err.response?.data);
     }
   };
 
@@ -42,10 +46,30 @@ const Hashtag = () => {
             type="number"
             value={count}
             onChange={(e) => setCount(e.target.value)}
-            min="1"
+            min="0"
             max="100"
             className="w-full p-2 border rounded"
             required
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700">Start Date (YYYY-MM-DD)</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full p-2 border rounded"
+            max={new Date().toISOString().split('T')[0]}
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700">End Date (YYYY-MM-DD)</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-full p-2 border rounded"
+            max={new Date().toISOString().split('T')[0]}
           />
         </div>
         {error && <p className="text-red-500 mb-4">{error}</p>}

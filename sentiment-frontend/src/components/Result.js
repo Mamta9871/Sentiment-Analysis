@@ -3,27 +3,54 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from '../axios';
 import { AuthContext } from './AuthProvider';
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable'; // Import autoTable explicitly
- 
+import autoTable from 'jspdf-autotable';
+
 const Result = () => {
   const { state } = useLocation();
   const { user, loading } = useContext(AuthContext);
   const navigate = useNavigate();
-  const tweets = state?.tweets || null;
+  const tweets = state?.data || null;
   const [analysisResults, setAnalysisResults] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
- 
+  const [sentimentSummary, setSentimentSummary] = useState(null); // New state for summary
+
   useEffect(() => {
     if (!loading && (!user || !user.token)) {
       navigate('/login');
     }
-  }, [user, loading, navigate]);
- 
+    if (tweets && tweets.tweets) {
+      console.log('Raw tweets from state:', JSON.stringify(tweets.tweets, null, 2));
+    }
+  }, [user, loading, navigate, tweets]);
+
+  const calculateSentimentSummary = (results) => {
+    const total = results.length;
+    if (total === 0) return { positive: 0, negative: 0, neutral: 0, total: 0 };
+
+    const counts = results.reduce(
+      (acc, tweet) => {
+        acc[tweet.sentiment] = (acc[tweet.sentiment] || 0) + 1;
+        return acc;
+      },
+      { positive: 0, negative: 0, neutral: 0 }
+    );
+
+    return {
+      positive: counts.positive,
+      negative: counts.negative,
+      neutral: counts.neutral,
+      positivePct: ((counts.positive / total) * 100).toFixed(1),
+      negativePct: ((counts.negative / total) * 100).toFixed(1),
+      neutralPct: ((counts.neutral / total) * 100).toFixed(1),
+      total,
+    };
+  };
+
   const handleAnalysis = async () => {
-    if (!tweets || analysisResults.length > 0) return;
+    if (!tweets || !tweets.tweets || analysisResults.length > 0) return;
     setIsAnalyzing(true);
     setError('');
     try {
@@ -33,20 +60,22 @@ const Result = () => {
           return {
             text: tweet.text,
             sentiment: res.data.sentiment,
-            created_at: tweet.created_at
+            created_at: tweet.created_at,
           };
         })
       );
       setAnalysisResults(results);
+      setSentimentSummary(calculateSentimentSummary(results)); // Calculate summary after analysis
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Failed to analyze tweets.';
-      setError(errorMsg);
-      console.error('Analysis Error:', errorMsg);
+      const waitTime = err.response?.data?.wait_time;
+      setError(waitTime ? `${errorMsg} Retry in ${waitTime} seconds.` : errorMsg);
+      console.error('Analysis Error:', err.response?.data);
     } finally {
       setIsAnalyzing(false);
     }
   };
- 
+
   const handleSaveToDatabase = async () => {
     if (!analysisResults.length) return;
     setIsSaving(true);
@@ -56,53 +85,88 @@ const Result = () => {
       const res = await axios.post('/sentiment/save-analyzed-tweets', {
         username: tweets.username,
         name: tweets.name,
-        tweets: analysisResults
+        tweets: analysisResults,
       });
       console.log('Save Response:', res.data);
       setSaveSuccess(true);
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Failed to save tweets to database.';
       setError(errorMsg);
-      console.error('Save Error:', errorMsg);
+      console.error('Save Error:', err.response?.data);
     } finally {
       setIsSaving(false);
     }
   };
- 
+
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.text(`Analyzed Tweets for @${tweets.username} (${tweets.name})`, 14, 10);
- 
-    // Prepare table data
-    const tableData = analysisResults.map((item) => [
+
+    if (sentimentSummary) {
+      doc.text('Sentiment Summary:', 14, 20);
+      doc.text(`Positive: ${sentimentSummary.positive} (${sentimentSummary.positivePct}%)`, 14, 30);
+      doc.text(`Negative: ${sentimentSummary.negative} (${sentimentSummary.negativePct}%)`, 14, 40);
+      doc.text(`Neutral: ${sentimentSummary.neutral} (${sentimentSummary.neutralPct}%)`, 14, 50);
+      doc.text(`Total Tweets: ${sentimentSummary.total}`, 14, 60);
+    }
+
+    const tableData = (analysisResults.length > 0 ? analysisResults : tweets.tweets).map((item) => [
       tweets.username,
       item.text,
-      item.sentiment
+      item.sentiment || 'N/A',
+      item.created_at === 'N/A'
+        ? 'N/A'
+        : new Date(item.created_at).toLocaleString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+          }) + ' IST',
     ]);
- 
-    // Add table using autoTable
-    autoTable(doc, { // Use autoTable directly
-      startY: 20,
-      head: [['Username', 'Text', 'Sentiment']],
+
+    autoTable(doc, {
+      startY: sentimentSummary ? 70 : 20,
+      head: [['Username', 'Text', 'Sentiment', 'Posted']],
       body: tableData,
       styles: { fontSize: 10, cellPadding: 2 },
       columnStyles: {
         0: { cellWidth: 30 },
-        1: { cellWidth: 100 },
-        2: { cellWidth: 30 }
+        1: { cellWidth: 80 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 50 },
       },
-      theme: 'striped'
+      theme: 'striped',
     });
- 
+
     doc.save(`${tweets.username}_analyzed_tweets.pdf`);
   };
- 
+
   const exportToCSV = () => {
     const csvContent = [
-      "Username,Tweet,Sentiment,Posted",
-      ...analysisResults.map(item =>
-        `"${tweets.username}","${item.text.replace(/"/g, '""')}","${item.sentiment}","${item.created_at === "Unknown" ? "Unknown" : new Date(item.created_at).toLocaleString()}"`
-      )
+      'Username,Tweet,Sentiment,Posted',
+      ...(analysisResults.length > 0 ? analysisResults : tweets.tweets).map((item) =>
+        [
+          `"${tweets.username}"`,
+          `"${item.text.replace(/"/g, '""')}"`,
+          `"${item.sentiment || 'N/A'}"`,
+          `"${item.created_at === 'N/A' ? 'N/A' : new Date(item.created_at).toLocaleString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+          }) + ' IST'}"`,
+        ].join(',')
+      ),
     ].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -110,10 +174,10 @@ const Result = () => {
     link.download = `${tweets.username}_analyzed_tweets.csv`;
     link.click();
   };
- 
+
   if (loading) return <div>Loading...</div>;
- 
-  if (!tweets) {
+
+  if (!tweets || !tweets.tweets) {
     return (
       <div className="flex min-h-screen bg-gray-100">
         <div className="flex-1 p-6">
@@ -123,7 +187,7 @@ const Result = () => {
       </div>
     );
   }
- 
+
   return (
     <div className="flex min-h-screen bg-gray-100">
       <div className="flex-1 p-6">
@@ -131,7 +195,26 @@ const Result = () => {
           Twitter Posts for @{tweets.username} {analysisResults.length > 0 ? '(Analyzed)' : ''}
         </h1>
         <div className="bg-white p-6 rounded-lg shadow-lg">
-          <p><strong>Name:</strong> {tweets.name}</p>
+          <p>
+            <strong>Name:</strong> {tweets.name}
+          </p>
+          {sentimentSummary && (
+            <div className="mt-4 flex gap-5">
+              <h2 className="text-xl font-semibold text-gray-800">Sentiment Summary</h2>
+              <p className="text-green-600">
+                <strong> 😊 Positive:</strong> {sentimentSummary.positive} ({sentimentSummary.positivePct}%)
+              </p>
+              <p className="text-red-600">
+                <strong> 😡 Negative:</strong> {sentimentSummary.negative} ({sentimentSummary.negativePct}%)
+              </p>
+              <p className="text-gray-600">
+                <strong> 😐 Neutral:</strong> {sentimentSummary.neutral} ({sentimentSummary.neutralPct}%)
+              </p>
+              <p className="text-gray-800">
+                <strong>Total Tweets:</strong> {sentimentSummary.total}
+              </p>
+            </div>
+          )}
           <button
             onClick={handleAnalysis}
             className="mt-4 bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700 transition disabled:bg-gray-400"
@@ -165,23 +248,43 @@ const Result = () => {
           {error && <p className="text-red-500 mt-4">{error}</p>}
           {saveSuccess && <p className="text-green-500 mt-4">Tweets saved to database successfully!</p>}
           <ul className="space-y-4 mt-4">
-            {(analysisResults.length > 0 ? analysisResults : tweets.tweets).map((item, index) => (
-              <li key={index} className="border-b pb-2">
-                <p><strong>Tweet:</strong> {item.text}</p>
-                {analysisResults.length > 0 && (
-                  <p><strong>Sentiment:</strong> {item.sentiment}</p>
-                )}
-                <p className="text-sm text-gray-600">
-                  Posted: {item.created_at === "Unknown" ? "Unknown" : new Date(item.created_at).toLocaleString()}
-                </p>
-              </li>
-            ))}
+            {(analysisResults.length > 0 ? analysisResults : tweets.tweets).map((item, index) => {
+              const postedTime =
+                item.created_at === 'N/A'
+                  ? 'N/A'
+                  : new Date(item.created_at).toLocaleString('en-IN', {
+                      timeZone: 'Asia/Kolkata',
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: true,
+                    }) + ' IST';
+              console.log(`Tweet ${index} raw created_at: ${item.created_at}, formatted: ${postedTime}`);
+              return (
+                <li key={index} className="border-b pb-2">
+                  <p>
+                    <strong>Tweet:</strong> {item.text}
+                  </p>
+                  {analysisResults.length > 0 && (
+                    <p>
+                      <strong>Sentiment:</strong> {item.sentiment}
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-600">
+                    <strong>Posted on:</strong> {postedTime}
+                  </p>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
     </div>
   );
 };
- 
+
 export default Result;
- 
