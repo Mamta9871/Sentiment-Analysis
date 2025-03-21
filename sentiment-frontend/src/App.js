@@ -10,6 +10,7 @@ import TrendingHashtags from './components/TrendingHashtags';
 import HashtagResult from './components/HashtagResult';
 import Hashtag from './components/Hashtag';
 
+
 const App = () => {
   return (
     <AuthProvider>
