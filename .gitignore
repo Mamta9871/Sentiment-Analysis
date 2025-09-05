@@ -1,6 +1,25 @@
-# Ignore Node.js modules
-sentiment-backend/node_modules/
+# --- Node.js dependencies ---
+node_modules/
 sentiment-frontend/node_modules/
+sentiment-backend/node_modules/
 
-#Ignore venv
+# --- Python virtual environment ---
+venv/
 sentiment-analysis/venv/
+
+# --- Build outputs ---
+build/
+dist/
+*.log
+
+# --- IDE/editor settings ---
+.vscode/
+.idea/
+
+# --- Environment files ---
+.env
+*.env
+
+# --- OS-specific ---
+.DS_Store
+Thumbs.db
