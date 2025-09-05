@@ -11,6 +11,8 @@ import AuthProvider from './components/AuthProvider';
 import TrendingHashtags from './components/TrendingHashtags';
 import HashtagResult from './components/HashtagResult';
 import Hashtag from './components/Hashtag';
+import 'leaflet/dist/leaflet.css';
+
 
 
 const App = () => {

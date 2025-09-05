@@ -15,5 +15,9 @@
     "url": "https://github.com/Codewithdarks/sentiment-ai/issues"
   },
   "homepage": "https://github.com/Codewithdarks/sentiment-ai#readme",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^5.0.0"
+  }
 }

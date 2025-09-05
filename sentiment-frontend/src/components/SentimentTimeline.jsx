@@ -22,7 +22,7 @@ const SentimentTimeline = ({ sentimentCounts }) => {
     let positiveData = [];
     let negativeData = [];
     let neutralData = [];
-    let points = 6; // Default points for "1hr"
+    let points = 6; 
 
     switch (filter) {
       case "6hr":
@@ -47,7 +47,6 @@ const SentimentTimeline = ({ sentimentCounts }) => {
     for (let i = 0; i < points; i++) {
       labels.push(`${filter} - ${i + 1}`);
 
-      // Ensure positive, negative, and neutral data update dynamically
       positiveData.push(sentimentCounts.positive ? Math.random() * sentimentCounts.positive : 0);
       negativeData.push(sentimentCounts.negative ? Math.random() * sentimentCounts.negative : 0);
       neutralData.push(sentimentCounts.neutral ? Math.random() * sentimentCounts.neutral : 0);
@@ -60,7 +59,7 @@ const SentimentTimeline = ({ sentimentCounts }) => {
           label: "Positive",
           data: positiveData,
           borderColor: "green",
-          backgroundColor: "rgba(0, 128, 0, 0.3)", // Filled green area
+          backgroundColor: "rgba(0, 128, 0, 0.3)", 
           fill: true,
           tension: 0.4,
         },
@@ -68,7 +67,7 @@ const SentimentTimeline = ({ sentimentCounts }) => {
           label: "Negative",
           data: negativeData,
           borderColor: "red",
-          backgroundColor: "rgba(255, 0, 0, 0.3)", // Filled red area
+          backgroundColor: "rgba(255, 0, 0, 0.3)", 
           fill: true,
           tension: 0.4,
         },
@@ -76,13 +75,13 @@ const SentimentTimeline = ({ sentimentCounts }) => {
           label: "Neutral",
           data: neutralData,
           borderColor: "orange",
-          backgroundColor: "rgba(255, 165, 0, 0.3)", // Filled orange area
+          backgroundColor: "rgba(255, 165, 0, 0.3)", 
           fill: true,
           tension: 0.4,
         },
       ],
     });
-  }, [filter, sentimentCounts]); // Update when filter or sentimentCounts change
+  }, [filter, sentimentCounts]); 
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
@@ -137,3 +136,4 @@ const SentimentTimeline = ({ sentimentCounts }) => {
 };
 
 export default SentimentTimeline;
+
